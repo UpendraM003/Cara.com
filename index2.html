@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: rgba(74, 249, 255, 0.1);
+        }
+
+        .admin-opt {
+            text-align: center;
+            margin-top: 100px;
+        }
+        h2{
+          text-align: center;
+          text-decoration: none;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 1px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+            box-shadow: 200px;
+        }
+    </style>
+</head>
+<body>
+  <img src="/img/logo.png" alt="">
+  <h2>Admin Portal</h2>
+    <div class="admin-opt">
+        <button id="add-items">Add Items</button>
+        <button id="remove-items">View Items</button>
+        <button id="customer-details">Customer Details</button>
+        <button id="purchaseditems"> Purchased Items</button>
+    </div>
+    <script>
+        document.getElementById("add-items").addEventListener("click", function() {
+          window.location.href = "additems.html";
+        });
+    
+        document.getElementById("remove-items").addEventListener("click", function() {
+          window.location.href = "viewitems.html";
+        });
+
+        document.getElementById("customer-details").addEventListener("click",function(){
+          window.location.href = "customerdetails.html";
+        });
+        document.getElementById("purchaseditems").addEventListener("click",function(){
+          window.location.href = "purchaseitems.html";
+        });
+    </script>
+</body>
+</html>

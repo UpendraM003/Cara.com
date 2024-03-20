@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Data</title>
+    <style>
+        body{
+            background-color: aliceblue;
+        }
+        table {
+            border-radius: 20px;
+            width: 90%;
+            background-color: white;
+        }
+
+        th, td {
+            border: 1px solid black;
+            text-align: left;
+            padding: 1px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Purchase Data</h1>
+    <table id="purchaseTable">
+        <thead>
+            <tr>
+                <th>CustomerID</th>
+                <th>Credit</th>
+                <th>Confirmation Status</th>
+                <th>Items</th>
+                <th>Total Price</th>
+                <th>Order Placed</th>
+                <th>Order Date</th>
+            </tr>
+        </thead>
+        <tbody id="purchaseBody">
+            <!-- Data will be populated here dynamically -->
+        </tbody>
+    </table>
+
+    <script>
+        function fetchData() {
+            const url = 'https://firestore.googleapis.com/v1/projects/clothing-5c089/databases/(default)/documents/Purchase';
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    populateTable(data.documents);
+                })
+                .catch(error => console.error('Error fetching purchase data:', error));
+        }
+
+        function populateTable(documents) {
+            const purchaseBody = document.getElementById('purchaseBody');
+            purchaseBody.innerHTML = ''; // Clear previous data
+
+            documents.forEach(doc => {
+                try {
+                    const fields = doc.fields;
+                    console.log('Fields:', fields); // Debug line
+
+                    const row = document.createElement('tr');
+
+                    // Add other fields
+                    const customerID = fields.CustomerID?.stringValue || '';
+                    const credit = fields.Credit?.integerValue || '';
+                    const confirmationStatus = fields.Confirmation_status?.booleanValue || '';
+                    const itemsArray = fields.Items?.arrayValue?.values || [];
+                    const items = itemsArray.map(item => item.stringValue).join(', ');
+                    const totalPrice = fields.Total_Price?.integerValue || fields['Total_Price ']?.integerValue || '';
+                    const orderPlaced = fields.Order_Placed?.booleanValue || '';
+                    const orderDate = fields.Order_Date?.stringValue || '';
+
+                    const rowData = [customerID, credit, confirmationStatus, items, totalPrice, orderPlaced, orderDate];
+
+                    rowData.forEach(value => {
+                        const cell = document.createElement('td');
+                        cell.textContent = value;
+                        row.appendChild(cell);
+                    });
+
+                    purchaseBody.appendChild(row);
+                } catch (error) {
+                    console.error('Error parsing document:', error);
+                }
+            });
+        }
+
+        // Fetch data when the page loads
+        window.onload = function () {
+            fetchData();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firestore Inventory</title>
+    <style>
+        body{
+            background-color: rgba(209, 255, 247, 0.897);
+        }
+        table {
+            border-radius: 20px;
+            width: 90%;
+            color: black;
+        }
+
+        th, td {
+            border: 1px solid rgb(128, 128, 128);
+            text-align: left;
+            padding: 1px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .delete-btn,
+        .update-btn {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Firestore Inventory</h1>
+    <table id="inventoryTable">
+        <thead>
+            <tr>
+                <th></th>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>CategoryID</th>
+                <th>UOM</th>
+            </tr>
+        </thead>
+        <tbody id="inventoryBody">
+            <!-- Data will be populated here dynamically -->
+        </tbody>
+    </table>
+
+    <form id="updateForm" style="display: none;">
+        <input type="text" id="updateTitle" placeholder="Title"><br>
+        <input type="text" id="updateDescription" placeholder="Description"><br>
+        <input type="text" id="updatePrice" placeholder="Price"><br>
+        <input type="text" id="updateQuantity" placeholder="Quantity"><br>
+        <input type="text" id="updateCategoryID" placeholder="CategoryID"><br>
+        <input type="text" id="updateUOM" placeholder="UOM"><br>
+        <button type="button" id="submitUpdate" onclick="updateDocument()">Update</button>
+    </form>
+
+    <button id="deleteBtn" class="delete-btn" onclick="deleteSelected()">Delete</button>
+    <button id="updateBtn" class="update-btn" onclick="populateUpdateForm()">Update</button>
+
+    <script>
+        function fetchData() {
+            const url = 'https://firestore.googleapis.com/v1/projects/clothing-5c089/databases/(default)/documents/Inventory';
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    populateTable(data.documents);
+                })
+                .catch(error => console.error('Error fetching inventory:', error));
+        }
+
+        function populateTable(documents) {
+            const inventoryBody = document.getElementById('inventoryBody');
+            inventoryBody.innerHTML = ''; // Clear previous data
+
+            documents.forEach(doc => {
+                const fields = doc.fields;
+                const row = document.createElement('tr');
+
+                // Create checkbox column
+                const checkboxCell = document.createElement('td');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.addEventListener('change', function () {
+                    toggleActionButtons();
+                });
+                checkbox.dataset.documentId = doc.name.split('/').pop(); // Extract document ID and store it as data attribute
+                checkboxCell.appendChild(checkbox);
+                row.appendChild(checkboxCell);
+
+                // Add other fields
+                const title = fields.Title.stringValue || '';
+                const description = fields.Description.stringValue || '';
+                const price = fields.Price.doubleValue || '';
+                const quantity = fields.Quantity.integerValue || '';
+                const categoryID = fields.CategoryID.stringValue || '';
+                const uom = fields.UOM.stringValue || '';
+
+                const rowData = [title, description, price, quantity, categoryID, uom];
+
+                rowData.forEach(value => {
+                    const cell = document.createElement('td');
+                    cell.textContent = value;
+                    row.appendChild(cell);
+                });
+
+                inventoryBody.appendChild(row);
+            });
+        }
+
+        function toggleActionButtons() {
+            const checkboxes = document.querySelectorAll('#inventoryBody input[type="checkbox"]');
+            const deleteButton = document.getElementById('deleteBtn');
+            const updateButton = document.getElementById('updateBtn');
+
+            let showDeleteButton = false;
+            let showUpdateButton = false;
+
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    showDeleteButton = true;
+                    showUpdateButton = true;
+                }
+            });
+
+            if (showDeleteButton) {
+                deleteButton.style.display = 'inline-block';
+            } else {
+                deleteButton.style.display = 'none';
+            }
+
+            if (showUpdateButton) {
+                updateButton.style.display = 'inline-block';
+            } else {
+                updateButton.style.display = 'none';
+            }
+        }
+
+        function deleteSelected() {
+            const checkboxes = document.querySelectorAll('#inventoryBody input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    const documentID = checkbox.dataset.documentId; // Get document ID from data attribute
+
+                    // Delete the document from Firestore
+                    const url = `https://firestore.googleapis.com/v1/projects/clothing-5c089/databases/(default)/documents/Inventory/${documentID}`;
+                    fetch(url, {
+                        method: 'DELETE'
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            console.log(`Document with ID ${documentID} deleted successfully.`);
+                        } else {
+                            console.error(`Failed to delete document with ID ${documentID}.`);
+                        }
+                    })
+                    .catch(error => console.error('Error deleting document:', error));
+                }
+            });
+
+            // Hide the action buttons after deleting
+            toggleActionButtons();
+        }
+
+        function populateUpdateForm() {
+            const checkboxes = document.querySelectorAll('#inventoryBody input[type="checkbox"]');
+            let checkedCount = 0;
+            let documentID = '';
+
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    checkedCount++;
+                    documentID = checkbox.dataset.documentId; // Get document ID from data attribute
+                }
+            });
+
+            if (checkedCount === 1) {
+                // Fetch document data from Firestore
+                const url = `https://firestore.googleapis.com/v1/projects/clothing-5c089/databases/(default)/documents/Inventory/${documentID}`;
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        const fields = data.fields;
+
+                        // Populate the update form with the document data
+                        document.getElementById('updateTitle').value = fields.Title.stringValue || '';
+                        document.getElementById('updateDescription').value = fields.Description.stringValue || '';
+                        document.getElementById('updatePrice').value = fields.Price.doubleValue || '';
+                        document.getElementById('updateQuantity').value = fields.Quantity.integerValue || '';
+                        document.getElementById('updateCategoryID').value = fields.CategoryID.stringValue || '';
+                        document.getElementById('updateUOM').value = fields.UOM.stringValue || '';
+
+                        // Display the update form
+                        document.getElementById('updateForm').style.display = 'block';
+                    })
+                    .catch(error => console.error('Error fetching document:', error));
+            } else {
+                alert('Please select only one item to update.');
+            }
+        }
+
+        function updateDocument() {
+            // Retrieve updated data from the form
+            const documentID = document.querySelector('#inventoryBody input[type="checkbox"]:checked').dataset.documentId;
+            const title = document.getElementById('updateTitle').value;
+            const description = document.getElementById('updateDescription').value;
+            const price = parseFloat(document.getElementById('updatePrice').value);
+            const quantity = parseInt(document.getElementById('updateQuantity').value);
+            const categoryID = document.getElementById('updateCategoryID').value;
+            const uom = document.getElementById('updateUOM').value;
+
+            const updatedData = {
+                fields: {
+                    Title: { stringValue: title },
+                    Description: { stringValue: description },
+                    Price: { doubleValue: price },
+                    Quantity: { integerValue: quantity },
+                    CategoryID: { stringValue: categoryID },
+                    UOM: { stringValue: uom }
+                }
+            };
+
+            // Update the document in Firestore
+            const url = `https://firestore.googleapis.com/v1/projects/clothing-5c089/databases/(default)/documents/Inventory/${documentID}`;
+            fetch(url, {
+                method: 'PATCH',
+                body: JSON.stringify(updatedData),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log(`Document with ID ${documentID} updated successfully.`);
+                    // Hide the update form after successful update
+                    document.getElementById('updateForm').style.display = 'none';
+                } else {
+                    console.error(`Failed to update document with ID ${documentID}.`);
+                }
+            })
+            .catch(error => console.error('Error updating document:', error));
+        }
+
+        // Fetch data when the page loads
+        window.onload = function () {
+            fetchData();
+        };
+    </script>
+</body>
+</html>

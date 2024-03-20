@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #a6ffff;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: black;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 90%;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 1px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            color: black;
+            font-weight: bold;
+        }
+
+        td {
+            color: black;
+        }
+
+        .action-btns {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #updateForm {
+            display: none;
+            background-color: #f2f2f2;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        #updateForm h2 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="email"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #45a049;
+        }
+
+        #updateMessage {
+            color: green;
+            font-weight: bold;
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Customer Data</h1>
+    <table id="customerTable">
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="selectAll" onchange="toggleActionButtons(this)"></th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Password</th>
+                <th>Mobile</th>
+                <th>Credit Limit</th>
+            </tr>
+        </thead>
+        <tbody id="customerBody">
+            <!-- Data will be populated here dynamically -->
+        </tbody>
+    </table>
+
+    <div class="action-btns">
+        <button id="deleteBtn" onclick="deleteSelected()">Delete</button>
+        <button id="updateBtn" onclick="populateUpdateForm()">Update</button>
+    </div>
+
+    <div id="updateForm">
+        <h2>Update Customer</h2>
+        <form id="updateCustomerForm" onsubmit="updateDocument(); return false;">
+            <label for="updateName">Name:</label>
+            <input type="text" id="updateName" name="updateName" required><br>
+            <label for="updateEmail">Email:</label>
+            <input type="email" id="updateEmail" name="updateEmail" required><br>
+            <label for="updatePassword">Password:</label>
+            <input type="text" id="updatePassword" name="updatePassword" required><br>
+            <label for="updateMobile">Mobile:</label>
+            <input type="number" id="updateMobile" name="updateMobile" required><br>
+            <label for="updateCreditLimit">Credit Limit:</label>
+            <input type="number" id="updateCreditLimit" name="updateCreditLimit" required><br>
+            <button type="submit">Update</button>
+        </form>
+    </div>
+
+
+    <div id="updateMessage"></div>
+
+    <script>
+    function fetchData() {
+        const url = 'https://firestore.googleapis.com/v1/projects/clothing-5c089/databases/(default)/documents/Customer';
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                populateTable(data.documents);
+            })
+            .catch(error => console.error('Error fetching customer data:', error));
+    }
+
+    function populateTable(documents) {
+        const customerBody = document.getElementById('customerBody');
+        customerBody.innerHTML = ''; // Clear previous data
+
+        documents.forEach(doc => {
+            const fields = doc.fields;
+            const row = document.createElement('tr');
+
+            // Create checkbox column
+            const checkboxCell = document.createElement('td');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.addEventListener('change', function () {
+                toggleActionButtons();
+            });
+            checkbox.dataset.documentId = doc.name.split('/').pop(); // Extract document ID and store it as data attribute
+            checkboxCell.appendChild(checkbox);
+            row.appendChild(checkboxCell);
+
+            // Add other fields
+            const name = fields.Name.stringValue || '';
+            const email = fields.Email.stringValue || '';
+            const password = fields.Password.stringValue || '';
+            const mobile = fields.Mobile.integerValue || '';
+            const creditLimit = fields.CreditLimit.integerValue || '';
+
+            const rowData = [name, email, password, mobile, creditLimit];
+
+            rowData.forEach(value => {
+                const cell = document.createElement('td');
+                cell.textContent = value;
+                row.appendChild(cell);
+            });
+
+            customerBody.appendChild(row);
+        });
+    }
+
+    function toggleActionButtons() {
+        const checkboxes = document.querySelectorAll('#customerBody input[type="checkbox"]');
+        const actionButtons = document.querySelector('.action-btns');
+
+        let showActionButtons = false;
+
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                showActionButtons = true;
+            }
+        });
+
+        if (showActionButtons) {
+            actionButtons.style.display = 'block';
+        } else {
+            actionButtons.style.display = 'none';
+        }
+    }
+
+    function deleteSelected() {
+        const checkboxes = document.querySelectorAll('#customerBody input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                const documentID = checkbox.dataset.documentId; // Get document ID from data attribute
+
+                // Delete the document from Firestore
+                const url = `https://firestore.googleapis.com/v1/projects/clothing-5c089/databases/(default)/documents/Customer/${documentID}`;
+                fetch(url, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        console.log(`Document with ID ${documentID} deleted successfully.`);
+                        fetchData(); // Refresh table after deletion
+                    } else {
+                        console.error(`Failed to delete document with ID ${documentID}.`);
+                    }
+                })
+                .catch(error => console.error('Error deleting document:', error));
+            }
+        });
+
+        // Hide the action buttons after deleting
+        toggleActionButtons();
+    }
+
+    function populateUpdateForm() {
+        const checkboxes = document.querySelectorAll('#customerBody input[type="checkbox"]');
+        let checkedCount = 0;
+
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                checkedCount++;
+            }
+        });
+
+        if (checkedCount === 1) {
+            document.getElementById('updateForm').style.display = 'block';
+        } else {
+            alert('Please select only one item to update.');
+        }
+    }
+
+    function updateDocument() {
+        const checkboxes = document.querySelectorAll('#customerBody input[type="checkbox"]');
+        let documentID = '';
+
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                documentID = checkbox.dataset.documentId; // Get document ID from data attribute
+            }
+        });
+
+        const updateData = {
+            fields: {
+                Name: {
+                    stringValue: document.getElementById('updateName').value.trim()
+                },
+                Email: {
+                    stringValue: document.getElementById('updateEmail').value.trim()
+                },
+                Password: {
+                    stringValue: document.getElementById('updatePassword').value.trim()
+                },
+                Mobile: {
+                    integerValue: parseInt(document.getElementById('updateMobile').value.trim())
+                },
+                CreditLimit: {
+                    integerValue: parseInt(document.getElementById('updateCreditLimit').value.trim())
+                }
+            }
+        };
+
+        const url = `https://firestore.googleapis.com/v1/projects/clothing-5c089/databases/(default)/documents/Customer/${documentID}`;
+        fetch(url, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updateData)
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log(`Document with ID ${documentID} updated successfully.`);
+                fetchData(); // Refresh table after update
+            } else {
+                console.error(`Failed to update document with ID ${documentID}.`);
+            }
+        })
+        .catch(error => console.error('Error updating document:', error));
+    }
+
+    // Fetch data when the page loads
+    window.onload = function () {
+        fetchData();
+    };
+</script>
+
+</body>
+</html>
